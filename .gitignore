@@ -1,0 +1,12 @@
+# This is the most important file in the project.
+# It protects our secrets.
+
+# Ignore the file that holds our secret keys.
+.env
+
+# Ignore Python's temporary cache files.
+__pycache__/
+
+# Ignore our log files.
+logs/
+hunter_activity.log
