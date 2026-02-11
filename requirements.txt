@@ -1,5 +1,8 @@
 python-dotenv
+flask
 requests
-websockets
-python-telegram-bot
-pytz
+python-telegram-bot>=20.0
+asyncpg
+aiohttp
+gunicorn
+web3

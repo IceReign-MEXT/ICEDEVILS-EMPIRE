@@ -1,22 +1,22 @@
-# 🛡️ ICEDEVILS EMPIRE 🛡️
+# ❄️ ICEDEVILS EMPIRE - V50 Solana Warlord
 
-This is the central command for the ICEDEVILS EMPIRE, a suite of autonomous, intelligent crypto agents designed for security, opportunity hunting, and asset management.
+**The Ultimate Solana Trading & Intelligence Automation Tool.**
 
-This repository contains the core weapon systems for the empire.
+IceDevils V50 is a high-frequency Python bot designed to track "God Candles" and Whale Movements on Solana using the Helius RPC. It features automated channel broadcasting, revenue tracking via Supabase, and a built-in monetization engine.
 
----
+## ⚡ Capabilities
+*   **Green Candle Printer:** Automatically detects and posts massive buy orders to Telegram.
+*   **Helius Integration:** Direct RPC connection for millisecond latency.
+*   **Revenue Engine:** Automated invoicing for VIP Access and Token Boosting.
+*   **Dashboard Sync:** Connects to the IceGods Central Command.
 
-### **Core Systems**
+## 🛠 Deployment
+1.  **Clone Repo**
+2.  **Install Requirements:** `pip install -r requirements.txt`
+3.  **Deploy to Render:** Python 3 Runtime.
 
-1.  **The Solana Hunter (`solana_hunter.py`)**
-    *   **Mission:** A 24/7, real-time hunter that watches the Solana blockchain for new, high-quality, rug-proof token launches from platforms like Pump.fun.
-    *   **Intelligence:** Features an "Alien Brain" that can detect high-value targets and initiate viral marketing campaigns.
+## 💰 Monetization
+*   **VIP Signals:** 0.5 SOL
+*   **Token Boosting:** 1.0 SOL
 
-2.  **The Business Tools (`business_tools.py`)**
-    *   **Mission:** The central nervous system for all alerts and logging. It acts as the "Messenger" for the empire, delivering reports to both private and public Telegram channels.
-
----
-
-### **Status**
-
-This project is live and operational. It represents the foundation of a new generation of intelligent crypto tools.
+*Built by IceReign Systems*

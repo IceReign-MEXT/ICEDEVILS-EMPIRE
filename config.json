@@ -1,8 +1,0 @@
-{
-    "business_name": "ICEDEVILS EMPIRE",
-    "business_bot_username": "@ChinoSecureBot",
-    "business_wallets": {
-        "solana_payment_wallet": "7791748225:AAGE05LojcDHgnK3nqWhSfiZ3fPi3GSU11A7ibxHLwe5kA62r9NiL8bz1yRGXA4chhjuCBuzCaVjs3T"
-    },
-    "alien_brain_threshold_sol": 25
-}
