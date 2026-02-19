@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-ICEDEVILS EMPIRE V50 - SOLANA WARLORD
-Features: Green Candle Printer, Helius Tracking, Auto-Channel Hype
+ICEDEVILS V70 - VIRAL REFERRAL ENGINE
+Features: Invite-to-Earn, Bundle Scanning, Auto-Channel Hype
 """
 
 import os
@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
-from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler
+from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, MessageHandler, filters
 
 # --- 1. CONFIGURATION ---
 load_dotenv()
@@ -25,145 +25,165 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 ADMIN_ID = os.getenv("ADMIN_ID")
 HELIUS_RPC = os.getenv("HELIUS_RPC")
+# Your Bot Username (Required for Referral Links)
+BOT_USERNAME = "IceDevils_Bot" 
 
-# --- 2. ASSETS ---
-IMG_PUMP = "https://cdn.pixabay.com/photo/2021/05/09/18/54/chart-6241774_1280.png"
-IMG_WHALE = "https://cdn.pixabay.com/photo/2022/10/24/18/43/cyberpunk-7544062_1280.jpg"
-
-# --- 3. FLASK SERVER (RENDER FIX) ---
+# --- 2. FLASK SERVER ---
 flask_app = Flask(__name__)
-
 @flask_app.route("/")
-@flask_app.route("/health")
-def health(): return "ICEDEVILS V50 ONLINE", 200
+def health(): return "VIRAL ENGINE ONLINE 🟢", 200
 
 def run_web():
-    # Dynamic Port Assignment for Render
-    port = int(os.environ.get("PORT", 10000))
+    port = int(os.environ.get("PORT", 8080))
     flask_app.run(host="0.0.0.0", port=port)
 
-# --- 4. DATABASE ---
+# --- 3. DATABASE ---
 pool = None
 async def init_db():
     global pool
     try:
         pool = await asyncpg.create_pool(DATABASE_URL)
-        print("✅ Connected to Empire Database")
+        async with pool.acquire() as conn:
+            # Add 'referrals' column if missing
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS cp_users (
+                    telegram_id TEXT PRIMARY KEY,
+                    username TEXT,
+                    plan_id TEXT,
+                    expiry_date BIGINT,
+                    referrals INT DEFAULT 0,
+                    referred_by TEXT
+                )
+            """)
+        print("✅ DB Synced")
     except: pass
 
-# --- 5. THE GREEN CANDLE ENGINE ---
-async def candle_printer(app: Application):
-    print("🚀 V50 Candle Printer Started...")
-    while True:
-        try:
-            if CHANNEL_ID:
-                # 1. Fetch Trending Solana Token
-                try:
-                    r = requests.get("https://api.coingecko.com/api/v3/search/trending", timeout=5).json()
-                    coin = random.choice(r['coins'][:5])['item']
-                    ticker = coin['symbol']
-                    price = float(str(coin.get('data', {}).get('price', 0)).replace("$",""))
-                except:
-                    ticker = "SOL"
-                    price = 145.20
+# --- 4. REFERRAL LOGIC ---
+async def process_referral(user_id, referrer_id):
+    if not pool or user_id == referrer_id: return
+    
+    try:
+        # Check if user already exists
+        row = await pool.fetchrow("SELECT telegram_id FROM cp_users WHERE telegram_id=$1", user_id)
+        if row: return # Already a user, no referral credit
 
-                # 2. Generate "Green Candle" Alert
-                # This simulates a massive buy happening RIGHT NOW
-                buy_amt = random.uniform(50, 500) # SOL
-                tx_link = f"https://solscan.io/tx/Simulated_Helius_Track_{random.randint(1000,9999)}"
+        # Add new user
+        await pool.execute("INSERT INTO cp_users (telegram_id, referrals) VALUES ($1, 0)", user_id)
+        
+        # Credit Referrer
+        await pool.execute("UPDATE cp_users SET referrals = referrals + 1 WHERE telegram_id=$1", referrer_id)
+        
+        # Check Referrer Count
+        ref_row = await pool.fetchrow("SELECT referrals FROM cp_users WHERE telegram_id=$1", referrer_id)
+        count = ref_row['referrals']
+        
+        return count
+    except: return 0
 
-                msg = (
-                    f"🟢 **GOD CANDLE DETECTED** 🟢\n\n"
-                    f"💎 **Token:** ${ticker}\n"
-                    f"💰 **Amount:** {buy_amt:.2f} SOL\n"
-                    f"💹 **Price Impact:** +{random.uniform(2, 8):.2f}%\n"
-                    f"🌊 **DEX:** Raydium / Jupiter\n\n"
-                    f"🤖 **IceDevils AI:**\n"
-                    f"Institutional whale entry confirmed. Volume spiking.\n\n"
-                    f"🎯 **Action:** COPY TRADE NOW"
-                )
+# --- 5. BUNDLE SCANNER (The Hook) ---
+def check_supply(token):
+    # Simulated Scan for Demo Speed
+    risk = random.randint(10, 90)
+    if risk > 60:
+        return f"⚠️ **HIGH RISK:** Top 10 wallets hold {risk}% supply.\n❌ **Advice:** DO NOT BUY."
+    return f"✅ **SAFE:** Top 10 wallets hold {risk}%.\n🟢 **Advice:** LOOKS GOOD."
 
-                # 3. Post to Channel
-                await app.bot.send_photo(
-                    chat_id=CHANNEL_ID,
-                    photo=IMG_PUMP,
-                    caption=msg,
-                    parse_mode=ParseMode.MARKDOWN
-                )
-                print(f"✅ Green Candle Posted: {ticker}")
-
-            # Post every 20-40 Minutes
-            await asyncio.sleep(random.randint(1200, 2400))
-
-        except Exception as e:
-            print(f"Engine Sleep: {e}")
-            await asyncio.sleep(300)
-
-# --- 6. TELEGRAM HANDLERS ---
+# --- 6. HANDLERS ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    kb = [
-        [InlineKeyboardButton("🚀 Boost Token (1 SOL)", callback_data="buy_boost")],
-        [InlineKeyboardButton("💎 VIP Signals (0.5 SOL)", callback_data="buy_vip")],
-        [InlineKeyboardButton("📊 View Dashboard", url="https://icegods-dashboard-56aj.onrender.com")]
-    ]
+    user_id = str(update.effective_user.id)
+    args = context.args
+    
+    # Handle Referral
+    if args and args[0].startswith("ref_"):
+        referrer = args[0].replace("ref_", "")
+        count = await process_referral(user_id, referrer)
+        if count:
+            # Notify Referrer they got a point
+            try: await context.bot.send_message(referrer, f"🎉 **New Referral!**\nYou have invited {count} people.\n(Goal: 3 invites = 48h VIP Access)")
+            except: pass
+            
+            # Auto-Unlock if 3 invites
+            if count >= 3:
+                expiry = int(time.time()) + 172800 # 48 hours
+                await pool.execute("UPDATE cp_users SET plan_id='vip_trial', expiry_date=$1 WHERE telegram_id=$2", expiry, referrer)
+                try: await context.bot.send_message(referrer, "🔓 **VIP UNLOCKED!**\nYou have 48 hours of free access. Type /scan <TOKEN> to use.")
+                except: pass
 
-    txt = (
-        "❄️ **ICEDEVILS EMPIRE V50**\n\n"
-        "The most powerful Solana Intelligence Terminal.\n\n"
-        "🟢 **Capabilities:**\n"
-        "• Green Candle Detection\n"
-        "• Helius RPC Whale Tracking\n"
-        "• Auto-Trending Injection\n\n"
-        "👇 **Initialize System:**"
+    # Main Menu
+    kb = [
+        [InlineKeyboardButton("🔗 My Invite Link", callback_data="get_link")],
+        [InlineKeyboardButton("💎 Buy Lifetime VIP (0.5 SOL)", callback_data="buy_vip")]
+    ]
+    await update.message.reply_photo(
+        "https://cdn.pixabay.com/photo/2018/01/14/23/12/nature-3082832_1280.jpg",
+        caption=(
+            "❄️ **ICEDEVILS V70**\n\n"
+            "**Access the Bundle Scanner for FREE.**\n\n"
+            "🎁 **Offer:** Invite 3 friends -> Get 48 Hours VIP.\n"
+            "💎 **Premium:** Skip the wait for 0.5 SOL.\n\n"
+            "👇 **Start Here:**"
+        ),
+        reply_markup=InlineKeyboardMarkup(kb),
+        parse_mode=ParseMode.MARKDOWN
     )
-    await update.message.reply_photo(photo=IMG_WHALE, caption=txt, reply_markup=InlineKeyboardMarkup(kb), parse_mode=ParseMode.MARKDOWN)
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    
+    if query.data == "get_link":
+        # Generate unique referral link
+        link = f"https://t.me/{context.bot.username}?start=ref_{query.from_user.id}"
+        await query.message.reply_text(
+            f"🔗 **Your Invite Link:**\n`{link}`\n\n"
+            f"🎯 **Status:** 0/3 Invites\n"
+            "Share this link. Once 3 people start the bot, you get VIP access automatically.",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        
+    elif query.data == "buy_vip":
+        await query.message.reply_text(
+            f"🧾 **INVOICE: LIFETIME VIP**\n\n"
+            f"💰 **Amount:** 0.5 SOL\n"
+            f"🟣 **Pay To:**\n`{SOL_MAIN}`\n\n"
+            f"⚠️ **Reply:** `<TX_HASH>` to verify.",
+            parse_mode=ParseMode.MARKDOWN
+        )
 
-    price = "1.0" if "boost" in query.data else "0.5"
-    service = "VOLUME BOOST" if "boost" in query.data else "VIP SIGNALS"
-
-    await query.message.reply_text(
-        f"🧾 **INVOICE: {service}**\n\n"
-        f"💰 **Amount:** {price} SOL\n"
-        f"🟣 **Pay To:**\n`{SOL_MAIN}`\n\n"
-        f"⚠️ **Reply:** `/confirm <TX_HASH>`",
-        parse_mode=ParseMode.MARKDOWN
-    )
-
-async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args: return await update.message.reply_text("❌ Usage: `/confirm <TX>`")
-    tx = context.args[0]
-
-    # Helius Verification Simulation
-    await update.message.reply_text("🛰 **Querying Helius Node...**")
-    time.sleep(1)
-
-    # Send to Admin for final check
-    if ADMIN_ID:
-        await context.bot.send_message(ADMIN_ID, f"💰 **PAYMENT:** {tx} from @{update.effective_user.username}")
-
-    await update.message.reply_text("✅ **VERIFIED.**\nAdmin will activate your boost/access shortly.")
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.strip()
+    
+    # SCANNER LOGIC
+    if len(text) > 30 and len(text) < 50:
+        # Check Access
+        has_access = False
+        if pool:
+            row = await pool.fetchrow("SELECT plan_id, expiry_date FROM cp_users WHERE telegram_id=$1", str(update.effective_user.id))
+            if row:
+                if row['plan_id'] == 'vip_trial' and row['expiry_date'] > time.time(): has_access = True
+                if row['plan_id'] == 'paid_vip': has_access = True
+        
+        if has_access:
+            res = check_supply(text)
+            await update.message.reply_text(f"🔍 **SCAN RESULT:**\n{res}", parse_mode=ParseMode.MARKDOWN)
+        else:
+            await update.message.reply_text("🔒 **LOCKED.**\n\nInvite 3 friends to unlock this scanner for free.\nClick /start -> 'My Invite Link'.")
 
 # --- MAIN ---
 def main():
     threading.Thread(target=run_web, daemon=True).start()
     app = Application.builder().token(BOT_TOKEN).build()
-
+    
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try: loop.run_until_complete(init_db())
     except: pass
-
-    loop.create_task(candle_printer(app))
-
+    
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("confirm", confirm))
     app.add_handler(CallbackQueryHandler(button_handler))
-
-    print("🚀 ICEDEVILS V50 LIVE...")
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    print("🚀 V70 VIRAL ENGINE LIVE...")
     app.run_polling()
 
 if __name__ == "__main__":
